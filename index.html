@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Converter Pro</title>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        button { background: #ff3e3e; color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px;}
+        .download-btn { display: none; background: #00c853; margin-top: 20px; padding: 15px; border-radius: 12px; color: white; text-decoration: none; font-weight: bold; display: block; }
+        #status { margin-top: 20px; font-size: 16px; color: #ffd700; font-weight: bold; min-height: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Video Converter Pro</h2>
+    <input type="file" id="upload" accept="video/mp4">
+    <button id="btnConvert" onclick="processVideo()">Convert Video</button>
+    <p id="status">Pilih video, lalu klik Convert</p>
+    <a id="downloadLink" class="download-btn">Download Video Hasil</a>
+</div>
+<script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js', log: true });
+    async function processVideo() {
+        const fileInput = document.getElementById('upload');
+        const status = document.getElementById('status');
+        const btn = document.getElementById('btnConvert');
+        if (!fileInput.files[0]) return alert("Pilih video!");
+        btn.disabled = true;
+        status.innerText = "⏳ Sedang memuat modul (tunggu)...";
+        try {
+            if (!ffmpeg.isLoaded()) await ffmpeg.load();
+            const file = fileInput.files[0];
+            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+            status.innerText = "⚙️ Mengambil thumbnail...";
+            await ffmpeg.run('-ss', '00:00:01', '-i', 'input.mp4', '-vframes', '1', 'thumb.jpg');
+            status.innerText = "🔄 Menggabungkan video...";
+            await ffmpeg.run('-i', 'input.mp4', '-i', 'thumb.jpg', '-filter_complex', '[0:v][1:v]overlay=0:0:enable=\'between(t,0,0.2)\'', '-c:a', 'copy', 'output.mp4');
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+            const dl = document.getElementById('downloadLink');
+            dl.href = url;
+            dl.download = 'HASIL_' + file.name;
+            dl.style.display = 'block';
+            status.innerText = "✅ Selesai! Video siap diunduh.";
+        } catch (e) { status.innerText = "❌ Error: " + e.message; } finally { btn.disabled = false; }
+    }
+</script>
+</body>
+</html>
