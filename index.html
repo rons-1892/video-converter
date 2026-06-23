@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Converter Pro</title>
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.9.7/dist/ffmpeg.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
         .container { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
@@ -23,21 +23,20 @@
 </div>
 <script>
     const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js', log: true });
+    const ffmpeg = createFFmpeg({ log: true });
     async function processVideo() {
         const fileInput = document.getElementById('upload');
         const status = document.getElementById('status');
         const btn = document.getElementById('btnConvert');
         if (!fileInput.files[0]) return alert("Pilih video!");
         btn.disabled = true;
-        status.innerText = "⏳ Sedang memuat modul (tunggu)...";
+        status.innerText = "⏳ Sedang memuat...";
         try {
             if (!ffmpeg.isLoaded()) await ffmpeg.load();
             const file = fileInput.files[0];
             ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-            status.innerText = "⚙️ Mengambil thumbnail...";
+            status.innerText = "⚙️ Memproses...";
             await ffmpeg.run('-ss', '00:00:01', '-i', 'input.mp4', '-vframes', '1', 'thumb.jpg');
-            status.innerText = "🔄 Menggabungkan video...";
             await ffmpeg.run('-i', 'input.mp4', '-i', 'thumb.jpg', '-filter_complex', '[0:v][1:v]overlay=0:0:enable=\'between(t,0,0.2)\'', '-c:a', 'copy', 'output.mp4');
             const data = ffmpeg.FS('readFile', 'output.mp4');
             const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
@@ -45,7 +44,7 @@
             dl.href = url;
             dl.download = 'HASIL_' + file.name;
             dl.style.display = 'block';
-            status.innerText = "✅ Selesai! Video siap diunduh.";
+            status.innerText = "✅ Selesai!";
         } catch (e) { status.innerText = "❌ Error: " + e.message; } finally { btn.disabled = false; }
     }
 </script>
